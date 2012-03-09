@@ -30,15 +30,15 @@
     var methods = {
         init: function(options) {
             var settings = $.extend({
-                /** Can be a #id or a sting */
-                overlayContents: '<div class="ui-widget-overlay element-overlay-container" id="{{id}}"><div>{{contents}}</div></div>',
-                
+                overlay: '<div class="ui-widget-overlay element-overlay-bk" id="{{id}}"></div>',
+                spinner: '<div class="element-overlay-contents">{{contents}}</div>',
                 title: $.elementOverlay.texts.title
             }, options, true);
 
             return this.each(function() {
                 var $this = $(this);
-                var data = $this.data('overlay');
+                var self = this;
+                var data = $this.data('griffin-element-overlay');
                 
 
                 this.reposition = function() {
@@ -50,31 +50,39 @@
                         width: $this.width() + "px",
                         height: $this.height() + "px"
                     });
-                    $('div', data.overlay).css('padding-top', (($this.height() / 2) - 20) + 'px');
+                    data.spinner.css({
+                        zindex: 100,
+                        position: 'absolute',
+                        top: pos.top,
+                        left: pos.left,
+                        width: $this.width() + "px",
+                        height: $this.height() + "px"
+                    });
+                    $(data.spinner).css('padding-top', (($this.height() / 2) - 20) + 'px');
                 };
                 
                 if (typeof data === 'undefined') {
-                    data = { };
+                    data = { settings: settings, self: this };
                     var id = $this.attr('id') + '-overlay';
-                    data.overlay = $(id);
                     
-                    var contents = settings.overlayContents;
-                    if (contents.substr(0,1) !== '#')
-                        contents = contents.replace('{{id}}', id).replace('{{contents}}', title);
-                        
-                    if (data.overlay.length == 0) {
-                        data.overlay = $(contents);
-                        $('body').append(data.overlay);
-                        this.reposition();
-                    }
+                    data.overlay = settings.overlay;
+                    if (data.overlay.substr(0,1) !== '#')
+                        data.overlay = data.overlay.replace('{{id}}', id);
+                    data.overlay = $(data.overlay);
+                    
+                    data.spinner = settings.spinner;
+                    if (data.spinner.substr(0,1) !== '#')
+                        data.spinner = data.spinner.replace('{{contents}}', settings.title);
+                    data.spinner = $(data.spinner);
+                    
+                    $('body').append(data.overlay);
+                    $('body').append(data.spinner);
+                    this.reposition();
 
-                    $(this).data('overlay', {
-                        target: $this,
-                        target2: this,
-                        overlay: data.overlay,
-                        settings: settings
-                    });
+                    $(this).data('griffin-element-overlay', data);
 
+                } else {
+                    methods['show'].apply(self);
                 }
                 
                 return this;
@@ -85,11 +93,12 @@
             return this.each(function() {
 
                 var $this = $(this),
-                    data = $this.data('overlay');
+                    data = $this.data('griffin-element-overlay');
 
                 // Namespacing FTW
                 $(window).unbind('.elementOverlay');
                 data.overlay.remove();
+                data.spinner.remove();
                 $this.removeData('overlay');
 
             });
@@ -97,17 +106,19 @@
         
         show: function( ) {
             var $this = $(this),
-                data = $this.data('overlay');
+                data = $this.data('griffin-element-overlay');
 
-            data.target2.reposition();
+            data.self.reposition();
             data.overlay.show();
+            data.spinner.show();
             return this;
         },
         hide: function( ) {
             var $this = $(this),
-                data = $this.data('overlay');
+                data = $this.data('griffin-element-overlay');
 
             data.overlay.hide();
+            data.spinner.hide();
             return this;
         }
     };

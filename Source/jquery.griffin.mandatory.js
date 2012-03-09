@@ -28,18 +28,26 @@
   
 $.loadedMethods = [];
 $.loaded = function (func) {
+    "use strict";
+    
     $.loadedMethods.push(func);
 };
 
 $.triggerLoaded = function (parent) {
+    "use strict";
+    
     $.each($.loadedMethods, function (index, func) {
         func.apply(parent);
     });
-    jQuery.validator.unobtrusive.parse($(parent));
+    if (jQuery().validator) {
+        jQuery.validator.unobtrusive.parse($(parent));
+    }
     $.loadedMethods = [];
 };
 
 $(function() {
+    "use strict";
+    
     $.triggerLoaded($('body')[0]);
 });
 
@@ -125,9 +133,90 @@ $.griffin.renderTemplate = function($target, template) {
 };
 */
 
-$.griffin.jsonResponse = function ($targetElement, json) {
-    if (typeof json.Success === 'undefined' || typeof json.Content === 'undefined') {
-        throw 'Expected to get the { success: true/false, action: "add/replace/edit/dialog", content: {} } JSON respone';
+
+/**
+var reponse = {
+    success: true, // or false
+    body: { 
+        action: 'dialog', // or 'add', 'replace', 'delete'
+        contentType: 'html', //or 'json'
+        content: // described below if content type is not HTML
+    }
+    
+    Contents
+    *********
+
+        action = 'dialog':  'a string'
+        table:              [['cell content', 'cell content'], ['cell content', 'cell content']]   (one main array for rows and one array per column in a row)
+        option:             { value: 'str', label: 'title' }
+        select:             [{ value: 'str', label: 'title' }, { value: 'str', label: 'title' }] (array of options)
+        input[type=checkbox] { checked: true, value: '1' }
+        input[type=radio]   { checked: true, value: '1' }
+        input[type=text]    { value: 'some text' }
+        input[type=hidden]  { value: 'some text' }
+        
+        
+
+*/
+
+$.griffin.dialogs = [];
+$.griffin.dialogs.alert = function(title, message) {
+    var content = message;
+    try {
+        content = $(message);
+    } catch (errMsg) {
+        content = $('<div>' + message + '</div>');
+    }
+        
+    var $dialog = $(content).appendTo($('body'));
+    $dialog.dialog({ 
+        title: title,
+        modal: true, 
+        width: 'auto', 
+        buttons: {
+            Ok: function() {
+                $( this ).dialog( "close" );
+                $dialog.remove();
+            }
+        }               
+    });
+};
+$.griffin.dialogs.confirm = function(title, message, yesCallBack) {
+    var content = message;
+    try {
+        content = $(message);
+    } catch (errMsg) {
+        content = $('<div>' + message + '</div>');
+    }
+        
+    var $dialog = $(content).appendTo($('body'));
+    $dialog.dialog({ 
+        title: title,
+        modal: true, 
+        width: 'auto', 
+        buttons: {
+            Yes: function() {
+                $( this ).dialog( "close" );
+                $dialog.remove();
+                yesCallback();
+            },
+            No: function() {
+                $( this ).dialog( "close" );
+                $dialog.remove();
+            }
+        }               
+    });
+};
+
+$.griffin.jsonResponse = function ($target, json) {
+    "use strict";
+    if (typeof $target === 'undefined') {
+        throw '$target was not specified';
+    }
+    console.log(json.body);
+    if (typeof json.success === 'undefined' || typeof json.body === 'undefined') {
+        console.log(json);
+        throw 'Expected to get the { success: true/false, body: {} } JSON respone';
     }
 
     if (!json.success) {
@@ -139,60 +228,62 @@ $.griffin.jsonResponse = function ($targetElement, json) {
         handled: false,
         content: json.content
     };
-    $targetElement.trigger('json-' + json.action, args);
+    $target.trigger('json-' + json.action, args);
     
+    var data = json.body;
     if (!args.handled) {
-        if (json.Action === 'delete') {
-            $targetElement.remove();
+        if (data.action === 'delete') {
+            $target.remove();
             return this;
         }
-        else if (typeof json.ContentType !== 'undefined' && json.ContentType === 'text/html') {
-            if (json.Action === 'replace') {
-                $target.html(json.Content);
+        else if (typeof data.contentType !== 'undefined' && (data.contentType === 'html' || data.contentType == 'string')) {
+            if (data.action === 'replace') {
+                $target.html(data.content);
                 return this;
-            } else if (json.Action === 'add') {
-                $target.append(json.Content);
+            } else if (data.action === 'add') {
+                $target.append(data.content);
                 return this;
-            } else if (json.Action === 'dialog') {
-                
-            }
+            } 
+        } else if (data.action === 'dialog') {
+            $.griffin.dialogs.alert('Success', data.content);
+            return this;
         }
         
-        switch ($targetElement[0].nodeName.toLowerCase()) {
+        switch ($target[0].nodeName.toLowerCase()) {
             case 'select':
-                if (json.Action == 'add') {
+                if (data.action === 'add') {
                     
-                    if (typeof data.Content !== 'array') {
-                        data.Content = [data.Content];
+                    if (typeof data.content !== 'array') {
+                        data.content = [data.content];
                     }
                     
-                    $.each(data.Content, function(index, item) {
+                    $.each(data.content, function(index, item) {
                         var option='<option value="' + item.Value + "'>" + item.Label + '</option>';
-                        $targetElement.parent().append(option);
+                        $target.parent().append(option);
                         if (typeof item.Selected  !== 'undefined' && item.Selected) {
                             option.attr('selected', 'selected');
                         }
                     });
                 }
                 break;
-            case 'option';
-                $targetElement.attr('value', data.Content.Value);
-                $targetElement.html(data.Content.Label);
-                if (typeof data.Content.Selected  !== 'undefined' && data.Content.Selected) {
-                    $targetElement.attr('selected', 'selected');
+            case 'option':
+                $target.attr('value', data.content.Value);
+                $target.html(data.content.Label);
+                if (typeof data.content.Selected  !== 'undefined' && data.content.Selected) {
+                    $target.attr('selected', 'selected');
                 } else {
-                    $targetElement.removeAttr('selected');
+                    $target.removeAttr('selected');
                 }
                 break;       
             case 'table':
-                if (json.Action == 'add') {
-                    if (typeof data.Content !== 'array') {
-                        data.Content = [data.Content];
+                if (data.action === 'add') {
+                    if (typeof data.content !== 'array') {
+                        data.content = [data.content];
                     }
                     
-                    $.each(data.Content, function(index, item) {
+                    $.each(data.content, function(index, item) {
                         var option='<option value="' + item.Value + "'>" + item.Label + '</option>';
-                        $targetElement.parent().append(option);
+                        $target.parent().append(option);
                         if (typeof item.Selected  !== 'undefined' && item.Selected) {
                             option.attr('selected', 'selected');
                         }
@@ -201,4 +292,4 @@ $.griffin.jsonResponse = function ($targetElement, json) {
         }
     
     }
-});
+};

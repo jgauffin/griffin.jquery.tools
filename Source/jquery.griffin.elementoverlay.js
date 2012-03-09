@@ -19,6 +19,8 @@
  * div.element-overlay-container div    Style the contents
  */
 (function($) {
+    "use strict";
+    
     //globals
     $.elementOverlay = {
         texts: {
@@ -66,13 +68,15 @@
                     var id = $this.attr('id') + '-overlay';
                     
                     data.overlay = settings.overlay;
-                    if (data.overlay.substr(0,1) !== '#')
+                    if (data.overlay.substr(0,1) !== '#') {
                         data.overlay = data.overlay.replace('{{id}}', id);
+                    }
                     data.overlay = $(data.overlay);
                     
                     data.spinner = settings.spinner;
-                    if (data.spinner.substr(0,1) !== '#')
+                    if (data.spinner.substr(0,1) !== '#') {
                         data.spinner = data.spinner.replace('{{contents}}', settings.title);
+                    }
                     data.spinner = $(data.spinner);
                     
                     $('body').append(data.overlay);

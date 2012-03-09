@@ -1,0 +1,59 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<head>
+  <title>Editor demo</title>
+  <link rel="stylesheet" href="../Styles/jquery-ui-1.8.16.custom.css">
+  <script type="text/javascript" src="../scripts/jquery-1.6.2.min.js"></script>
+  <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
+  <script type="text/javascript" src="../../Source/jquery.griffin.mandatory.js"></script>
+  <script type="text/javascript" src="../../Source/jquery.griffin.ajaxdialog.js"></script>
+  <style type="text/css">
+    .input-validation-error { border: 1px solid #f00 }
+    .input-validation-valid  { /* Optional: you can set whatever style you want */ }
+    .field-validation-error { color: #f00 }
+    .field-validation-valid { display: none }
+    .validation-summary-errors { font-weight: bold; color: #f00 }
+    .validation-summary-valid { display: none }
+</style>
+</head>
+<body>
+
+<table id="myTarget">
+    <tr>
+        <th>Name</th>
+        <th>Age</th>
+        <th></th>
+    </tr>
+    <tr>
+        <td>Jonas</td>
+        <td>99,5</td>
+        <td>
+            <a href="dialog-contents.php?gotTarget=true&postscript=table-result.php" class="ajax-dialog" rel="myTarget">Edit row</a>
+            <a href="table-delete-row.php" class="ajax-dialog delete" rel="myTarget">Delete row</a>
+        </th>
+    </tr>
+</table>
+<div id="myTarget">
+This will be replaced automagically!
+</div>
+
+<!-- note that the query string parameters are only nessacary to control the demo -->
+<a href="dialog-contents.php?gotTarget=true&postscript=table-result.php" class="ajax-dialog" rel="myTarget">Create user</a> |
+<a href="dialog-contents.php?gotTarget=true&fail=true" class="ajax-dialog" rel="myTarget">Create user - simulate failure</a> | 
+<a href="dialog-contents.php?gotTarget=true&fail=true&summary=true" class="ajax-dialog" rel="myTarget">Create user - simulate failure, use validation summary</a> 
+
+<script type="text/javascript">
+    $(function() {
+        // assign ids and rel tag for all rows.
+        $('#myTarget tbody tr').each(function(index, row) {
+            $(row).attr('id', 'myTarget-row-' + index);
+            $('a', row).attr('rel', 'myTarget-row-' + index);
+        });
+        /*
+        $('myTarget a.delete').click(function(e) {
+            e.preventDefault();
+        });*/
+    });
+</script>
+
+</body>
+</html>

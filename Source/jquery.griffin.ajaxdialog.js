@@ -1,16 +1,15 @@
 /** Ajax dialog
- * 
  * Loads the link through ajax and uses the result in a jQueryUI dialog.
  * Posts the content form (if any) through ajax and checks the specified result
  *
  * The link can contain a "rel" attribute to indicate that the POST form result
  * should target a specific node.
  *
- * Usage:
+ * Usage (expects HTML back):
  *
  * <a href="/user/create" rel="#myTable" class="ajax-dialog">Create user</a>
  *
- * You can also convert forms into ajax forms:
+ * You can also convert forms into ajax forms (expects JSON back):
  *
  * <form method="POST" action="/user/create" class="ajax-form" rel="#mySelectList">
  * </form>
@@ -19,8 +18,10 @@
  * 
  * {
  *      success: true,
+ *      action: append/delete/replace,
+ *
  *      content: {
- *          action: append/delete/replace
+ *          action: append/delete/replace,
  *      }
  * }
  *
@@ -30,21 +31,27 @@
  * 
  */
 (function($) {
-    //globals
-    $.elementOverlay = {
-        texts: {
-            title: 'Please wait, loading..'
-        },
-        translations: []
-    };
+    "use strict";
     
+    $.griffin = $.extend({
+        dialog: {
+            globals: {
+                texts: {
+                    title: 'Please wait, loading..'
+                },
+                translations: []
+            }
+        }
+    }, $.griffin, true);
+
     var methods = {
         init: function(options) {
             var settings = $.extend({
-                /** Can be a #id or a sting */
-                overlayContents: '<div class="ui-widget-overlay element-overlay-container" id="{{id}}"><div>{{contents}}</div></div>',
+                /** Can be a #id or a string */
+                container: '<div class="dialog-container"></div>',
                 
-                title: $.elementOverlay.texts.title
+                // null == use link title
+                title: null
             }, options, true);
 
             return this.each(function() {
@@ -53,97 +60,119 @@
                 var data = $this.data('griffin-ajax-dialog');
                 
 
-                this.reposition = function() {
-                    var pos = $this.offset();
-                    data.overlay.css({
-                        position: 'absolute',
-                        top: pos.top,
-                        left: pos.left,
-                        width: $this.width() + "px",
-                        height: $this.height() + "px"
-                    });
-                    $('div', data.overlay).css('padding-top', (($this.height() / 2) - 20) + 'px');
-                };
-                
-                this.transformForm = function($form, $target) {
+                this.transformForm = function($form, $target, callback) {
+
+                    // validation supported and it failed
                     if (jQuery().validate && !$form.valid()) {
                         return;
                     }
+                    
+                    var container = $($form).find("[data-valmsg-summary=true]");
+                    if (container.length !== 0) {
+                        container.addClass('validation-summary-valid');
+                        container.removeClass('validation-summary-errors');
+                        $('li', container).remove();
+                    }
+                    
                     $.ajax($form.attr('action'), {
                         type: $form.attr('method'),
                         data: $form.serialize(),
                         success: function (data) {
-                            $.griffin.jsonResponse($target, data);
+                            if (!data.success) {
+                                var container = $($form).find("[data-valmsg-summary=true]");
+                                if (container.length !== 0) {
+                                    container.removeClass('validation-summary-valid');
+                                    container.addClass('validation-summary-errors');
+                                    $('ul', container).append('<li>' + data.body + '</li>');
+                                } else {
+                                    $.griffin.dialogs.alert('Failure', data.body);
+                                }
+                            }
+                            else {
+                                $.griffin.jsonResponse($target, data);
+                                callback();
+                            }
                         }
                     });                
                 };
                 
-                if (typeof data === 'undefined') {
-                    data = { };
+                this.initializeForm = function(contents) {
+                    data.dialog.html(contents);
+                    $.triggerLoaded(data.dialog[0]);
+
+                    var $buttons = $('input[type="submit"], input[type="button"]', data.dialog).hide();
+                    var options= {
+                        title: $this.html(),
+                        modal: true,
+                        width: 'auto',
+                        buttons: [],
+                        closed: function() {
+                            if (data.removeWhenDone) {
+                                data.dialog.remove();
+                            }
+                        }
+                    };
                     
+                    $buttons.each(function () {
+                        if ($(this).attr('type') === 'submit') {
+                            options.buttons.push({
+                                text: $(this).val(),
+                                click: function () {
+                                    var $form = $('form', data.dialog);
+                                    if ($form.length === 1) {
+                                        self.transformForm($form, data.target, function() { data.dialog.dialog('close'); });
+                                    }
+                                    
+                                }
+                            });
+                        } else {
+                            options.buttons.push({
+                                text: $(this).val(),
+                                click: function () {
+                                    data.dialog.dialog('close');
+                                }
+                            });                                
+                        }
+                    });
+                    
+                    data.dialog.dialog(options);
+                };
+                
+                if (typeof data === 'undefined') {
+                    if ($this.hasClass('delete')) {
+                        $this.click(function (e) {
+                            e.preventDefault();
+                            $.griffin.dialogs.confirm('Delete item', 'Do you really want to delete the selected item?', function() {
+                                $.post($this.attr('href'), function(data) {
+                                    $.griffin.jsonResponse($target, data);
+                                });
+                            });
+                        });
+                        return this;
+                    }
+                    
+                    data = { removeWhenDone: false };
+                    
+                    data.target = $('#' + $this.attr('rel'));
                     $this.click(function (e) {
                         e.preventDefault();
 
-                        var overlay = $(this).elementOverlay();
-                        $.get($(this).attr('href'), function (templateHtml) {
-                            overlay.elementOverlay('hide');
-
-                            var $dialog = $('<div class="dialog-container"></div>').appendTo('body');
-                            $dialog.html(templateHtml);
-                            $.triggerLoaded($dialog[0]);
-
-                            var $buttons = $('input[type="submit"], input[type="button"]', $dialog).hide();
-                            var options= {
-                                title: 'Create template',
-                                modal: true,
-                                width: 'auto',
-                                buttons: []
-                            };
+                        var overlay = { elementOverlay: function(){} };
+                        if (jQuery().elementOverlay) {
+                             overlay = $(this).elementOverlay();
+                         };
+                        $.get($(this).attr('href'), function (dialogContents) {
+                            overlay.elementOverlay('destroy');
                             
-                            $buttons.each(function () {
-                                if ($(this).attr('type') === 'submit') {
-                                    option.buttons.push({
-                                        text: $(this).val(),
-                                        click: function () {
-                                            var $form = $('form', $dialog);
-                                            if ($form.length === 0) {
-                                                transformForm($form, self.data.target);
-                                            }
-                                        }
-                                    });
-                                } else {
-                                    option.buttons.push({
-                                        text: $(this).val(),
-                                        click: function () {
-                                            $dialog.dialog('close');
-                                        }
-                                    });                                
-                                }
-                            });
+                            data.dialog = $(settings.container);
+                            if (settings.container.substr(0, 1) !== '#') {
+                                data.dialog.appendTo('body');
+                                data.removeWhenDone  = true;
+                            }
                             
-                            $dialog.dialog(options);
+                            self.initializeForm(dialogContents);
                         });
                     });                    
-                    var id = $this.attr('id') + '-overlay';
-                    data.overlay = $(id);
-                    
-                    var contents = settings.overlayContents;
-                    if (contents.substr(0,1) !== '#')
-                        contents = contents.replace('{{id}}', id).replace('{{contents}}', title);
-                        
-                    if (data.overlay.length == 0) {
-                        data.overlay = $(contents);
-                        $('body').append(data.overlay);
-                        this.reposition();
-                    }
-
-                    $(this).data('overlay', {
-                        target: $this,
-                        target2: this,
-                        overlay: data.overlay,
-                        settings: settings
-                    });
-
                 }
                 
                 return this;
@@ -181,61 +210,23 @@
         }
     };
 
-    $.fn.elementOverlay = function(method) {
+    $.fn.griffinDialog = function(method) {
 
         if (methods[method]) {
             return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
         } else if (typeof method === 'object' || !method) {
             return methods.init.apply(this, arguments);
         } else {
-            $.error('Method ' + method + ' does not exist on jQuery.elementOverlay');
+            $.error('Method ' + method + ' does not exist on jQuery.griffinDialog');
         }
 
     };
 
 })(jQuery);
 
-$.loaded(function(parent) {
-    $('a.ajax-dialog', parent).griffinAjaxDialog();
+if (typeof $.loaded !== 'undefined') {
+    $.loaded(function(parent) {
+        "use strict";
+        $('a.ajax-dialog', parent).griffinDialog();
+    });
 }
-
-        $('#CreateTemplate').click(function (e) {
-            e.preventDefault();
-
-            var overlay = $(this).elementOverlay();
-            $.get($(this).attr('href'), function (templateHtml) {
-                overlay.elementOverlay('hide');
-
-                var $dialog = $('<div class="dialog-container"></div>');
-                $dialog.html(templateHtml);
-
-                var $button = $('input[type="submit"]', $dialog).hide();
-                $dialog.dialog({
-                    title: 'Create template',
-                    modal: true,
-                    width: 'auto',
-                    buttons: [{
-                        text: $button.val(),
-                        click: function () {
-                            var $form = $('form', $dialog);
-                            if (!$form.valid()) {
-                                return;
-                            }
-                            $.ajax($form.attr('action'), {
-                                type: $form.attr('method'),
-                                data: $form.serialize(),
-                                success: function (data) {
-                                    $('#TemplateId').append('<option value="' + data.Body.Key + "'>" + data.Body.Label + '</option>');
-                                    $('#TemplateId option[value="' + data.Body.Key + '"]').attr('selected', 'selected');
-                                }
-                            });
-                        }
-                    }]
-                });
-
-
-                $.triggerLoaded($dialog[0]);
-
-
-            });
-        });

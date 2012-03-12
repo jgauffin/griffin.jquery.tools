@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<head>
+  <title>Editor demo</title>
+  <link rel="stylesheet" href="../Styles/jquery-ui-1.8.16.custom.css">
+  <script type="text/javascript" src="../scripts/jquery-1.6.2.min.js"></script>
+  <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
+  <script type="text/javascript" src="../scripts/PubSub.js"></script>
+  <script type="text/javascript" src="../scripts/jsrender.js"></script>
+  <script type="text/javascript" src="../../Source/jquery.griffin.model.js"></script>
+  <style type="text/css">
+</style>
+</head>
+<body>
+
+<table id="myTarget" data-model-name="user">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Age</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<script id="myTarget-template" type="text/x-jsrender">
+	<tr>
+        <td>{{:id}}</td>
+        <td>{{:name}}</td>
+        <td>{{:age}}</td>
+        <td>
+            <a href="table-magic-serverside.php?action=edit&id={{:id}}" class="ajax-dialog" rel="myTarget">Edit row</a>
+            <a href="table-magic-serverside.php?action=delete&id={{:id}}" class="ajax-dialog delete" rel="myTarget">Delete row</a>
+        </td>
+	</tr>
+</script>
+<div id="myTarget">
+This will be replaced automagically!
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        // init one or several models.
+        $.griffin.model.init(['user']);
+        
+        //$.griffin.model.load('user', );
+        
+        // assign ids and rel tag for all rows.
+        $('#myTarget tbody tr').each(function(index, row) {
+            $(row).attr('id', 'myTarget-row-' + index);
+            $('a', row).attr('rel', 'myTarget-row-' + index);
+        });
+        /*
+        $('myTarget a.delete').click(function(e) {
+            e.preventDefault();
+        });*/
+    });
+    
+    function UserController() {
+        // expects to find POST actions [update/delete/create] and GET actions [get/list].
+        // where list gets pageNumber as query parameter.
+        this.Source = '/some/';
+        
+        // will be invoked if the item has not been loaded.
+        this.get = function(id) {
+            switch (id) {
+            
+            }
+        }
+        
+        this.load = function() {
+            return [{ id: 1, name: 'jonas', age: 33.5}, { id: 2, name: 'arne', age: 10}];
+        }
+        
+        this.update = function(model) {
+            $.post('/some/url', model, function(data) {
+                $.griffin.jsonResponse(data);
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

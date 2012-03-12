@@ -53,110 +53,150 @@ $(function() {
 
 $.griffin = {};
 
-/*
-$.griffin.renderTemplate = function($target, template) {
-    var internalRenderer = function() {};
-    
-    var templateNode = $('#' + $target.attr('id') + '-template');
-    if (templateNode.length === 0) {
-        switch ($target[0].nodeName.toLowerCase()) {
-            case 'option': 
-                $templateNode = this.getOrCreate('option-template', '<option value="{{=Option}}" {{=Selected}}>{{=Label}}</option>');
-                break;
-            case 'td': 
-                $templateNode = this.getOrCreate('td-template', '<td>{{=Content}}</td>');
-                break;
-            case 'td': 
-                $templateNode = this.getOrCreate('td-template', '<td>{{=Content}}</td>');
-                break;
-        }
+function isArray(obj) {
+    return Object.prototype.toString.call(obj) === '[object Array]';
+};
+function isNonEmptyArrayLike(obj) {
+    try { // don't bother with `typeof` - just access `length` and `catch`
+        return obj.length > 0 && '0' in Object(obj);
     }
-    else if (templateNode.length === 1) {
-        $target.data('griffin-template', templateNode);
-
-        if (jQuery().render) {
-            $target.data('griffin-template', this.renderRowUsingJsRender);
-        } else if (jQuery().tmpl) {
-            $.template("rowTemplate", templateNode); //outerhtml: .clone().wrap('<div></div>').parent().html()
-            $target.data('griffin-template', this.renderRowUsingTmpl);
-        } else {
-            alert('You have defined a template but either jsRender or jquery.tmpl could be found. Forgot to include a script?');
-        }
-
-        // exit either way
-        return true;
-    }
-
-        $table.data('row-renderer', this.renderRowUsingVanilla);
-        return true;
-    },
-
-    renderRow: function ($table, columns, row) {
-        return $table.data('row-renderer')($table, columns, row);
-    },
-
-    renderRowUsingJsRender: function ($table, columns, row) {
-        return $($($table.data('row-template')).render(row));
-    },
-
-    renderRowUsingTmpl: function ($table, columns, row) {
-        if (typeof row !== 'object') {
-            row = toObject(row);
-        }
-
-        return $.tmpl("rowTemplate", row);
-    },
-
-    renderRowUsingVanilla: function ($table, columns, row) {
-        var fetchColumnValue = function (row, index) {
-            return row[index];
-        };
-        if (!(row instanceof Array)) {
-            fetchColumnValue = function (row, index) {
-                return row[columns[index].name];
-            };
-        }
-
-        var $row = $('<tr></tr>');
-        $.each(columns, function (columnIndex, column) {
-            
-            var $cell = $('<td></td>');
-            if (column.hidden) {
-                $cell.css('display', 'none');
-            }
-            $cell.html(fetchColumnValue(row, columnIndex));
-            $cell.appendTo($row);
-        });
-
-        return $row;
+    catch(e) {
+        return false;
     }
 };
-*/
 
 
-/**
-var reponse = {
-    success: true, // or false
-    body: { 
-        action: 'dialog', // or 'add', 'replace', 'delete'
-        contentType: 'html', //or 'json'
-        content: // described below if content type is not HTML
+$.griffin.idAccessor = {
+    get: function(item) { return item.id; },
+    set: function(item, value) { item.id = value; }
+}
+$.griffin.renderItem = function($target, data) {
+    var internalRenderer = function() {};
+
+    var renderRowUsingJsRender = function ($target, row) {
+        var template = $target.data('griffin-render-node');
+        return $(template.render(row));
+    },
+
+    renderRowUsingTmpl = function ($target, row) {
+        return $.tmpl("griffin-render-template", row);
+    },
+    
+    initialize = function() {
+        var templateNode = $('#' + $target.attr('id') + '-template');
+        if (templateNode.length === 1) {
+            $target.data('griffin-render-node', templateNode);
+
+            if (jQuery().render) {
+                $target.data('griffin-renderer', renderRowUsingJsRender);
+            } else if (jQuery().tmpl) {
+                $.template("griffin-render-template", templateNode); //outerhtml: .clone().wrap('<div></div>').parent().html()
+                $target.data('griffin-renderer', renderRowUsingTmpl);
+            } else {
+                throw 'Failed to find on of the jQuery tmpl and jsRender template engines';
+            }
+            
+            return this;
+        } else {
+            throw 'No template was found for ' + $target.attr('id');
+        }
+    };
+    
+
+    var renderer = $target.data('griffin-renderer');
+    if (typeof renderer === 'undefined'){
+        initialize();
+        renderer = $target.data('griffin-renderer');
+    }
+    var item = renderer($target, data);
+    item.attr('data-model-id', $.griffin.idAccessor.get(data));
+    return item;    
+};
+
+$.griffin.model = {};
+$.griffin.model.items = [],
+$.griffin.model.update = function(modelName, data) {
+    var updateItem = function($target, itemData) {
+        var $existing = $('[data-model-id="' + $.griffin.idAccessor.get(itemData) + '"]', $target);
+        if ($existing.length == 1) {
+            
+            $existing.replaceWith($.griffin.renderItem($target, itemData));
+            PubSub.publish('griffin.node.' + modelName + '.added.' + $.griffin.idAccessor.get(data), { node: $existing[0], data: itemData, target: $target[0], modelName: modelName});
+        } else {
+            var node = $.griffin.renderItem($target, itemData).appendTo($target);
+            PubSub.publish('griffin.node.' + modelName + '.updated.' + $.griffin.idAccessor.get(itemData), { node: node, data: itemData, target: $target[0], modelName: modelName });
+        }    
+    };
+    
+    $('[data-model-name="' + modelName + '"]').each(function() {
+        var $this = $(this);
+        if (!isArray(data)) {
+            $.griffin.model.set(modelName, data);
+            PubSub.publish('griffin.model.' + modelName + '.loading.' + $.griffin.idAccessor.get(data), { data: data, modelName: modelName });
+            updateItem($this, data);
+            PubSub.publish('griffin.model.' + modelName + '.loaded.' + $.griffin.idAccessor.get(data), { data: data, modelName: modelName });
+        } else {
+            $.each(data, function(index, item) {
+                $.griffin.model.set(modelName, item);
+                PubSub.publish('griffin.model.' + modelName + '.loading.' + $.griffin.idAccessor.get(item), { data: item, modelName: modelName });
+                updateItem($this, item);
+                PubSub.publish('griffin.model.' + modelName + '.loaded.' + $.griffin.idAccessor.get(item), { data: item, modelName: modelName });
+            });
+        }
+    });
+}
+
+$.griffin.model.delete = function(modelName, id) {
+    if (typeof $.griffin.model.items[modelName] === 'undefined')
+        $.griffin.model.items[modelName] = [];
+
+    if (typeof id !== 'number') {
+        id = $.griffin.idAccessor.get(id);
     }
     
-    Contents
-    *********
+    var item = $.griffin.model.items[modelName][id];
+    
+    $('[data-model-name="' + modelName + '"]').each(function() {
+        var $this = $(this);
+        if (typeof $this.attr('data-model-id') === 'undefined') {
+            $('[data-model-id="' + id + '"]', $this).each(function() {
+                PubSub.publish('griffin.node.' + modelName + '.deleted.' + id, { node: this, data: item, target: $this[0], modelName: modelName});
+                $(this).remove();
+            });
+        }
+        else {
+            $this.remove();
+            PubSub.publish('griffin.node.' + modelName + '.deleted.' + id, { node: this, data: item, target: this, modelName: modelName});
+        }
+    });
+    
+    PubSub.publish('griffin.model.' + modelName + '.deleted.' + id, { data: item, modelName: modelName });
+    delete $.griffin.model.items[modelName][id];
+};
 
-        action = 'dialog':  'a string'
-        table:              [['cell content', 'cell content'], ['cell content', 'cell content']]   (one main array for rows and one array per column in a row)
-        option:             { value: 'str', label: 'title' }
-        select:             [{ value: 'str', label: 'title' }, { value: 'str', label: 'title' }] (array of options)
-        input[type=checkbox] { checked: true, value: '1' }
-        input[type=radio]   { checked: true, value: '1' }
-        input[type=text]    { value: 'some text' }
-        input[type=hidden]  { value: 'some text' }
-        
-        
+$.griffin.model.get = function(modelName, id) {
+    if (typeof id === 'number') {
+        return $.griffin.model.items[modelName][id];
+    }
+    
+    return $.griffin.model.items[modelName][$.griffin.idAccessor.get(id)];
+}
 
+$.griffin.model.set = function(modelName, data) {
+    if (typeof $.griffin.model.items[modelName] === 'undefined')
+        $.griffin.model.items[modelName] = [];
+        
+     $.griffin.model.items[modelName][$.griffin.idAccessor.get(data)] = data;
+}
+
+/**
+var response = {
+    success: true, // or false
+    responseType: 'model' // or 'dialog' etc
+    body: {  // responseType specific
+        action: 'show',
+        content: ''
+    }
 */
 
 $.griffin.dialogs = [];
@@ -170,6 +210,7 @@ $.griffin.dialogs.alert = function(title, message) {
         
     var $dialog = $(content).appendTo($('body'));
     $dialog.dialog({ 
+        dialogClass: 'griffin-dialog griffin-dialog-alert',
         title: title,
         modal: true, 
         width: 'auto', 
@@ -191,6 +232,7 @@ $.griffin.dialogs.confirm = function(title, message, yesCallBack) {
         
     var $dialog = $(content).appendTo($('body'));
     $dialog.dialog({ 
+        dialogClass: 'griffin-dialog griffin-dialog-confirm',
         title: title,
         modal: true, 
         width: 'auto', 
@@ -214,25 +256,38 @@ $.griffin.jsonResponse = function ($target, json) {
         throw '$target was not specified';
     }
     console.log(json.body);
-    if (typeof json.success === 'undefined' || typeof json.body === 'undefined') {
+    if (typeof json.success === 'undefined' || typeof json.body === 'undefined' || typeof json.responseType === 'undefined') {
         console.log(json);
-        throw 'Expected to get the { success: true/false, body: {} } JSON respone';
+        throw 'Expected to get the { success: true/false, responseType: "theType", body: {} } JSON respone';
     }
 
     if (!json.success) {
-        alert(json.content);
+        alert(json.body);
         return this;
     }
     
     var args = {
         handled: false,
-        content: json.content
+        response: json
     };
-    $target.trigger('json-' + json.action, args);
+    PubSub.publish('griffin.json-response', args);
     
     var data = json.body;
     if (!args.handled) {
-        if (data.action === 'delete') {
+        if (data.action === 'model') {
+            switch (data.body.action) {
+                case 'update':
+                    $.griffin.model.update(data.body.modelName, data.body.model);
+                    break;
+                case 'add':
+                    $.griffin.model.update(data.body.modelName, data.body.model);
+                    break;
+                case 'delete':
+                    $.griffin.model.update(data.body.modelName, data.body.id);
+                    break;
+            }
+        }
+        else if (data.action === 'delete') {
             $target.remove();
             return this;
         }
@@ -248,48 +303,5 @@ $.griffin.jsonResponse = function ($target, json) {
             $.griffin.dialogs.alert('Success', data.content);
             return this;
         }
-        
-        switch ($target[0].nodeName.toLowerCase()) {
-            case 'select':
-                if (data.action === 'add') {
-                    
-                    if (typeof data.content !== 'array') {
-                        data.content = [data.content];
-                    }
-                    
-                    $.each(data.content, function(index, item) {
-                        var option='<option value="' + item.Value + "'>" + item.Label + '</option>';
-                        $target.parent().append(option);
-                        if (typeof item.Selected  !== 'undefined' && item.Selected) {
-                            option.attr('selected', 'selected');
-                        }
-                    });
-                }
-                break;
-            case 'option':
-                $target.attr('value', data.content.Value);
-                $target.html(data.content.Label);
-                if (typeof data.content.Selected  !== 'undefined' && data.content.Selected) {
-                    $target.attr('selected', 'selected');
-                } else {
-                    $target.removeAttr('selected');
-                }
-                break;       
-            case 'table':
-                if (data.action === 'add') {
-                    if (typeof data.content !== 'array') {
-                        data.content = [data.content];
-                    }
-                    
-                    $.each(data.content, function(index, item) {
-                        var option='<option value="' + item.Value + "'>" + item.Label + '</option>';
-                        $target.parent().append(option);
-                        if (typeof item.Selected  !== 'undefined' && item.Selected) {
-                            option.attr('selected', 'selected');
-                        }
-                    });
-                }                
-        }
-    
     }
 };

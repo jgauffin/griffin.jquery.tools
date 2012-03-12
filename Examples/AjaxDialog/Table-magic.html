@@ -4,6 +4,8 @@
   <link rel="stylesheet" href="../Styles/jquery-ui-1.8.16.custom.css">
   <script type="text/javascript" src="../scripts/jquery-1.6.2.min.js"></script>
   <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
+  <script type="text/javascript" src="../scripts/jsrender.js"></script>
+  <script type="text/javascript" src="../scripts/PubSub.js"></script>
   <script type="text/javascript" src="../../Source/jquery.griffin.mandatory.js"></script>
   <script type="text/javascript" src="../../Source/jquery.griffin.ajaxdialog.js"></script>
   <style type="text/css">
@@ -13,45 +15,84 @@
     .field-validation-valid { display: none }
     .validation-summary-errors { font-weight: bold; color: #f00 }
     .validation-summary-valid { display: none }
+    
+    table {width: 100%}
+    th, td { padding: 5px; }
 </style>
 </head>
 <body>
 
-<table id="myTarget">
+<table id="myTarget" data-model-name="user">
+    <thead>
     <tr>
+        <th>Id</th>
         <th>Name</th>
         <th>Age</th>
         <th></th>
     </tr>
-    <tr>
-        <td>Jonas</td>
-        <td>99,5</td>
-        <td>
-            <a href="dialog-contents.php?gotTarget=true&postscript=table-result.php" class="ajax-dialog" rel="myTarget">Edit row</a>
-            <a href="table-delete-row.php" class="ajax-dialog delete" rel="myTarget">Delete row</a>
-        </th>
-    </tr>
+    </thead><tbody>
+    
+    </tbody>
 </table>
-<div id="myTarget">
-This will be replaced automagically!
+
+<script id="myTarget-template" type="text/x-jsrender">
+	<tr>
+        <td>{{:id}}</td>
+        <td>{{:name}}</td>
+        <td>{{:age}}</td>
+        <td>
+            <a href="table-magic-serverside.php?action=edit&id={{:id}}" class="ajax-dialog" rel="myTarget">Edit row</a>
+            <a href="table-magic-serverside.php?action=delete&id={{:id}}" class="ajax-dialog delete" rel="myTarget">Delete row</a>
+        </td>
+	</tr>
+</script>
+
+<button id="login">Login</button>
+<button id="login">Add new row</button>
+<button id="login">Login</button>
+<button id="login">Login</button>
+
+
+<div id="currentUser" data-model-name="current-user">
 </div>
+<script id="currentUser-template" type="text/x-jsrender">
+    <div>Welcome <strong>{{:name}}!</strong></div>
+</script>
 
 <!-- note that the query string parameters are only nessacary to control the demo -->
-<a href="dialog-contents.php?gotTarget=true&postscript=table-result.php" class="ajax-dialog" rel="myTarget">Create user</a> |
-<a href="dialog-contents.php?gotTarget=true&fail=true" class="ajax-dialog" rel="myTarget">Create user - simulate failure</a> | 
-<a href="dialog-contents.php?gotTarget=true&fail=true&summary=true" class="ajax-dialog" rel="myTarget">Create user - simulate failure, use validation summary</a> 
+<a href="table-magic-serverside.php?action=add" class="ajax-dialog" rel="myTarget">Create user</a> |
+<a href="table-magic-serverside.php?action=fail" class="ajax-dialog" rel="myTarget">Create user - simulate failure</a> | 
+<a href="table-magic-serverside.php?action=fail&summary=true" class="ajax-dialog" rel="myTarget">Create user - simulate failure, use validation summary</a> 
 
 <script type="text/javascript">
     $(function() {
-        // assign ids and rel tag for all rows.
-        $('#myTarget tbody tr').each(function(index, row) {
-            $(row).attr('id', 'myTarget-row-' + index);
-            $('a', row).attr('rel', 'myTarget-row-' + index);
+        // load initial values.
+        $.griffin.model.update('user', [{ id: 1, name: 'jonas', age: 33.5}, { id: 2, name: 'arne', age: 10}]);
+
+        // divert current user requests to user model
+        PubSub.subscribe('griffin.model.current-user.loaded', function(name, msg) {
+            // merge since current-user only have partial information
+            var userData = $.griffin.model.get('user', msg.data.id);
+            userData = $.extend(userData, msg.data, true);
+            
+            // trigger user update.
+            $.griffin.model.update('user', userData);
         });
-        /*
-        $('myTarget a.delete').click(function(e) {
+        
+        $('#login').click(function(e) {
             e.preventDefault();
-        });*/
+        
+            // fake ajax request, just call update directly.
+            $.griffin.model.update('current-user', { id: 2, name: 'Arne K' });
+        });
+        
+        $('#delete').click(function(e) {
+            e.preventDefault();
+        
+            // fake ajax request, just call update directly.
+            $.griffin.model.delete('user', 2);
+        });
+        
     });
 </script>
 

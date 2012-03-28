@@ -13,6 +13,88 @@
    return this.replace( /(^|\s)([a-z])/g , function(m,p1,p2){ return p1+p2.toUpperCase(); } );
 };
 
+// selfish.js
+!(typeof define!=="function"?function($){$(null,typeof exports!=='undefined'?exports:window)}:define)(function(require,exports){"use strict";exports.Base=Object.freeze(Object.create(Object.prototype,{'new':{value:function create(){var object=Object.create(this);object.initialize.apply(object,arguments);return object}},initialize:{value:function initialize(){}},merge:{value:function merge(){var descriptor={};Array.prototype.forEach.call(arguments,function(properties){Object.getOwnPropertyNames(properties).forEach(function(name){descriptor[name]=Object.getOwnPropertyDescriptor(properties,name)})});Object.defineProperties(this,descriptor);return this}},extend:{value:function extend(){return Object.freeze(this.merge.apply(Object.create(this),arguments))}}}))});
+
+var RestlessRepository = Base.extend({
+    _self = this,
+    _items = [],
+    
+    initialize: function(modelName, uri) {
+        this.modelName = modelName;
+        if (typeof uri === 'undefined' || uri === null) {
+            this.uri = '/' + modelName + '/';
+        } else {
+            if (uri.substr(uri.length - 1, 1) !== '/') {
+                uri = uri + '/';
+            }
+            this.uri = uri;
+        }
+    }
+    
+    getId: function(item) {
+    }
+    
+    /** Distributes the changes to everyone listening */
+    publish: function() {
+        
+    },
+    
+    _getItem: function(itemOrId) {
+        if (typeof itemOrId === 'number') {
+            return _items[itemOrId];
+        }
+        
+        return _items[_self.getId(itemOrId)];
+    },
+    
+    load: function(id) {
+    
+    },
+    
+    setItem: function(item) {
+        _items[_self.getId(item)] = item;
+    },
+    
+    update: function(model) {
+        _self._perform('update', 'updated', model);
+    },
+    
+    create: function(model) {
+        _self._perform('create', 'created', model);
+    },
+    
+    delete: function(modelOrId) {
+        var id = modelOrId;
+        if (typeof id !== 'number') {
+            id = _self.getId(modelOrId);
+        }
+        
+        var result = $.post(url + 'delete/' + id, model, function(data) {
+            if (response.success) {
+                delete _items[id];
+                PubSub.publish('griffin.model.' + _self.modelName + '.deleted', data);
+            } else {
+                PubSub.publish('griffin.response', data);
+            }
+        });
+    },
+    
+    _perform: function(actionName, eventName, model) {
+        var result = $.post(url + actionName + '/' + model.id, model, function(data) {
+            if (response.success) {
+                _self.setItem(data);
+                PubSub.publish('griffin.model.' + _self.modelName + '.' + eventName, data);
+            } else {
+                PubSub.publish('griffin.response', data);
+            }
+        });
+    }
+})
+
+
+
+// our script.
 (function($) {
     "use strict";
    

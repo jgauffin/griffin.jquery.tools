@@ -37,6 +37,7 @@ var RestlessRepository = Base.extend({
     },
     
     getId: function(item) {
+        return $.griffin.model.getId(item);
     },
     
     /** Distributes the changes to everyone listening */
@@ -46,38 +47,62 @@ var RestlessRepository = Base.extend({
     
     _getItem: function(itemOrId) {
         if (typeof itemOrId === 'number') {
-            return _items[itemOrId];
+            return this._items[itemOrId];
         }
         
-        return _items[_self.getId(itemOrId)];
+        return this._items[this.getId(itemOrId)];
     },
     
-    load: function(id) {
+    load: function(modelOrId) {
+        if (typeof modelOrId === 'number') {
+            return this._getItem(modelOrId);
+        }
     
+        this._items[this.getId(modelOrId)] = modelOrId;
+        PubSub.publish('griffin.model.' + this.modelName + '.loaded', { modelName: this.modelName, model: modelOrId });
     },
     
     setItem: function(item) {
-        _items[_self.getId(item)] = item;
+        this._items[this.getId(item)] = item;
     },
     
     update: function(model) {
-        _self._perform('update', 'updated', model);
+        this._perform('update', 'updated', model);
     },
     
     create: function(model) {
-        _self._perform('create', 'created', model);
+        this._perform('create', 'created', model);
+    },
+    
+    handleMessage: function(data) {
+        switch (data.actionName) {
+            case 'create':
+                PubSub.publish('griffin.model.' + this.modelName + '.created', { modelName: this.modelName, model: data.model });
+                //fallthrough
+            case 'load':
+                this.load(data.model);
+                break;
+            case 'update':
+                this.setItem(data.model);
+                PubSub.publish('griffin.model.' + this.modelName + '.updated', { modelName: this.modelName, model: data.model });
+                break;
+            case 'delete':
+                delete this._items[this.getId(data.model)];
+                PubSub.publish('griffin.model.' + this.modelName + '.deleted', { modelName: this.modelName, model: data.model });
+                break;
+        }
     },
     
     delete: function(modelOrId) {
         var id = modelOrId;
         if (typeof id !== 'number') {
-            id = _self.getId(modelOrId);
+            id = this.getId(modelOrId);
         }
         
-        var result = $.post(url + 'delete/' + id, model, function(data) {
+        var result = $.post(uri + 'delete/' + id, model, function(data) {
             if (response.success) {
-                delete _items[id];
-                PubSub.publish('griffin.model.' + _self.modelName + '.deleted', data);
+                delete this._items[id];
+                PubSub.publish('griffin.model.' + _self.modelName + '.deleted', { modelName: this.modelName, model: model });
             } else {
                 PubSub.publish('griffin.response', data);
             }
@@ -88,7 +113,7 @@ var RestlessRepository = Base.extend({
         var result = $.post(url + actionName + '/' + model.id, model, function(data) {
             if (response.success) {
                 _self.setItem(data);
-                PubSub.publish('griffin.model.' + _self.modelName + '.' + eventName, data);
+                PubSub.publish('griffin.model.' + _self.modelName + '.' + eventName, { modelName: this.modelName, model: model });
             } else {
                 PubSub.publish('griffin.response', data);
             }
@@ -102,7 +127,7 @@ var RestlessRepository = Base.extend({
 (function($) {
     "use strict";
    
-   $.griffin = {};
+   //$.griffin = {};
     /** Uses jsRender or jQuery.tmpl to render views */
     $.griffin.renderItem = function($target, data) {
         var internalRenderer = function() {};
@@ -156,7 +181,7 @@ var RestlessRepository = Base.extend({
      */
     $.griffin.model = {};
     $.griffin.model.Object = function() {
-        var _repositories = [],
+        var _repositories = {},
             self = this,
 			publish = function(name, args) {
                 PubSub.publish(name, args);
@@ -171,9 +196,13 @@ var RestlessRepository = Base.extend({
             return item.id;
         };
 		
+        this.getRepos = function(modelName) {
+            return _repositories[modelName];
+        };
+        
 		this.createRepository = function(modelName) {
 			return RestlessRepository.new(modelName);
-		},
+		};
         
         /** Initialize models and load their controllers. */
         this.init = function(modelNames) {
@@ -205,6 +234,28 @@ var RestlessRepository = Base.extend({
 			return $.extend({}, arr);
 		}
 		
+        PubSub.subscribe('griffin.model', function(eventName, data) {
+            if (eventName.substr(-4, 4) === 'load') {
+                self.getRepos(data.modelName).handleMessage(data);
+            }
+            else if (eventName.substr(-7, 7) === 'deleted') {
+                self.remove(data.modelName, data.model);
+            }
+            else if (eventName.substr(-6, 6) === 'loaded' || eventName.substr(-7, 7) === 'updated') {
+                self.load(data.modelName, data.model);
+            }
+        });
+        
+        this.add = function(modelName, items) {
+            if (!isArray(items)) {
+					items = [items];
+				}
+				
+            var repos = self.getRepos(modelName);
+            $.each(items, function(index, item) {
+                repos.load(item);
+            });
+        }
         
         /** Load a model (or an array of models).
           *
@@ -228,10 +279,10 @@ var RestlessRepository = Base.extend({
                 var $existing = $('[data-model-id="' + id + '"]', $target);
                 if ($existing.length === 1) {
                     $existing.replaceWith($.griffin.renderItem($target, itemData));
-                    publish('griffin.node.' + modelName + '.updated.' + self.getId(itemData), { node: $existing[0], data: itemData, target: $target[0], modelName: modelName});
+					publish('griffin.model.' + modelName + '.node-updated.' + self.getId(itemData), { model: itemData, modelName: modelName, target: $target });
                 } else {
                     var node = $.griffin.renderItem($target, itemData).appendTo($target);
-                    publish('griffin.node.' + modelName + '.added.' + self.getId(itemData), { node: node, data: itemData, target: $target[0], modelName: modelName });
+					publish('griffin.model.' + modelName + '.node-created.' + self.getId(itemData), { model: itemData, modelName: modelName, target: $(node) });
                 }    
             };
     
@@ -244,41 +295,29 @@ var RestlessRepository = Base.extend({
 				
 				
 				$.each(data, function(index, item) {
-					publish('griffin.model.' + modelName + '.loading.' + self.getId(item), { data: item, modelName: modelName });
-					//set(modelName, item);
 					updateItem($this, item);
-					publish('griffin.model.' + modelName + '.loaded.' + self.getId(item), { data: item, modelName: modelName });
 				});
             });
         };
         
         /** Remove a model  */
-        this.remove = function(modelName, id) {
-            if (_models[modelName] === 'undefined') {
-                _models[modelName] = [];
-            }
+        this.remove = function(modelName, model) {
+            var id = model.id;
             if (typeof id !== 'number') {
-                id = self.getId(id);
+                id = self.getId(model);
             }
-            
-            var item = $.griffin.model.items[modelName][id];
             
             $('[data-model-name="' + modelName + '"]').each(function() {
                 var $this = $(this);
                 if (typeof $this.attr('data-model-id') === 'undefined') {
                     $('[data-model-id="' + id + '"]', $this).each(function() {
-                        publish('griffin.node.' + modelName + '.deleted.' + id, { node: this, data: item, target: $this[0], modelName: modelName});
                         $(this).remove();
                     });
                 }
                 else {
                     $this.remove();
-                    publish('griffin.node.' + modelName + '.deleted.' + id, { node: this, data: item, target: this, modelName: modelName});
                 }
             });
-            
-            publish('griffin.model.' + modelName + '.deleted.' + id, { data: item, modelName: modelName });
-            delete _models[modelName][id];
         };
         
         

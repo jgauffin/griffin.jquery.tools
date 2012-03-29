@@ -151,17 +151,9 @@ $.griffin.jsonResponse = function ($target, json) {
     var data = json.body;
     if (!args.handled) {
         if (data.action === 'model') {
-            switch (data.body.action) {
-                case 'update':
-                    $.griffin.model.update(data.body.modelName, data.body.model);
-                    break;
-                case 'add':
-                    $.griffin.model.update(data.body.modelName, data.body.model);
-                    break;
-                case 'delete':
-                    $.griffin.model.update(data.body.modelName, data.body.id);
-                    break;
-            }
+            // body = modelName, model, actionName
+            PubSub.publish('griffin.model.' + data.body.modelName + '.load', data.body);
+            return this;
         }
         else if (data.action === 'delete') {
             $target.remove();

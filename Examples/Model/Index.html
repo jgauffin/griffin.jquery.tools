@@ -51,16 +51,37 @@ Age<br />
 <br />
 <input type="submit" />
 </form>
-<div id="myTarget">
-This will be replaced automagically!
-</div>
-
+<button id="changeMe">Change Jonas</button>
 <script type="text/javascript">
     $(function() {
         $.griffin.model.init(['user']);
-        $.griffin.model.load('user', [{ id: 1, name: 'jonas', age: 56.5}, { id: 2, name: 'arne', age: 10}]);
+        $.griffin.model.add('user', [{ id: 1, name: 'jonas', age: 56.5}, { id: 2, name: 'arne', age: 10}]);
+        
+        var response = { 
+            success: true, 
+            body: {
+                actionName: 'load',
+                modelName: 'user',
+                model: { id: 3, name: 'sixten', age: 132 }
+            }
+        };
+        PubSub.publish('griffin.model.' + response.body.modelName + '.load', response.body);
+    });
+    
+    $('#changeMe').click(function() {
+        var repos = $.griffin.model.getRepos('user');
+        var model = repos.load(1);
+        model.name = 'Jonas';
+        repos.load(model);
     });
 	
+    PubSub.subscribe('griffin.model.user.node-created', function(eventName, data) {
+        data.target.effect('highlight');
+    });
+    PubSub.subscribe('griffin.model.user.node-updated', function(eventName, data) {
+        data.target.effect('bounce');
+    });    
+    
 	$('#edit-form').submit(function(e) {
 		e.preventDefault();
 		
@@ -78,7 +99,11 @@ This will be replaced automagically!
 		console.log($('input[name="' + name + '"]').length);
 			$('input[name="' + name + '"]').val(value);
 		});
+        
+        alert($.param(model));
 	});
+    
+  
 </script>
 
 </body>

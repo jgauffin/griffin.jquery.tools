@@ -6,6 +6,7 @@
   <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
   <script type="text/javascript" src="../scripts/PubSub.js"></script>
   <script type="text/javascript" src="../scripts/jsrender.js"></script>
+  <script type="text/javascript" src="../../Source/jquery.griffin.mandatory.js"></script>
   <script type="text/javascript" src="../../Source/jquery.griffin.model.js"></script>
   <style type="text/css">
 </style>
@@ -23,61 +24,61 @@
     <tbody>
     </tbody>
 </table>
-<script id="myTarget-template" type="text/x-jsrender">
+<script data-template-for="myTarget" type="text/x-jsrender">
 	<tr>
-        <td>{{:id}}</td>
         <td>{{:name}}</td>
         <td>{{:age}}</td>
         <td>
-            <a href="table-magic-serverside.php?action=edit&id={{:id}}" class="ajax-dialog" rel="myTarget">Edit row</a>
+            <a href="table-magic-serverside.php?action=edit&id={{:id}}" class="edit" rel="myTarget">Edit row</a>
             <a href="table-magic-serverside.php?action=delete&id={{:id}}" class="ajax-dialog delete" rel="myTarget">Delete row</a>
         </td>
 	</tr>
 </script>
+
+<div data-model-name="user" data-model-id="1" id="me-display">
+</div>
+<script data-template-for="me-display" type="text/x-jsrender">
+	<h2>This is me: {{:name}} at the age of {{:age}}</h2>
+</script>
+
+<form id="edit-form" class="ui-widget ui-helper-hidden">
+<input type="hidden" name="id" />
+Name<br />
+<input type="text" name="name" /><br />
+<br />
+Age<br />
+<input type="text" name="age" value="" /><br />
+<br />
+<input type="submit" />
+</form>
 <div id="myTarget">
 This will be replaced automagically!
 </div>
 
 <script type="text/javascript">
     $(function() {
-        // init one or several models.
         $.griffin.model.init(['user']);
-        
-        //$.griffin.model.load('user', );
-        
-        // assign ids and rel tag for all rows.
-        $('#myTarget tbody tr').each(function(index, row) {
-            $(row).attr('id', 'myTarget-row-' + index);
-            $('a', row).attr('rel', 'myTarget-row-' + index);
-        });
-        /*
-        $('myTarget a.delete').click(function(e) {
-            e.preventDefault();
-        });*/
+        $.griffin.model.load('user', [{ id: 1, name: 'jonas', age: 56.5}, { id: 2, name: 'arne', age: 10}]);
     });
-    
-    function UserController() {
-        // expects to find POST actions [update/delete/create] and GET actions [get/list].
-        // where list gets pageNumber as query parameter.
-        this.Source = '/some/';
-        
-        // will be invoked if the item has not been loaded.
-        this.get = function(id) {
-            switch (id) {
-            
-            }
-        }
-        
-        this.load = function() {
-            return [{ id: 1, name: 'jonas', age: 33.5}, { id: 2, name: 'arne', age: 10}];
-        }
-        
-        this.update = function(model) {
-            $.post('/some/url', model, function(data) {
-                $.griffin.jsonResponse(data);
-            });
-        }
-    }
+	
+	$('#edit-form').submit(function(e) {
+		e.preventDefault();
+		
+		var model = $.griffin.model.from($(this));
+		$.griffin.model.load('user', model);
+		$('#edit-form').hide();
+	});
+    $('#myTarget .edit').live('click', function(e) {
+		e.preventDefault();
+		$('#edit-form').show().effect('flash');
+
+		var tr = $(this).closest('tr');
+		var model = $.griffin.model.from(tr);
+		$.each(model, function (name,value) {
+		console.log($('input[name="' + name + '"]').length);
+			$('input[name="' + name + '"]').val(value);
+		});
+	});
 </script>
 
 </body>

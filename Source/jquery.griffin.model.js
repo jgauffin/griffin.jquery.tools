@@ -12,13 +12,17 @@
     "use strict";
    return this.replace( /(^|\s)([a-z])/g , function(m,p1,p2){ return p1+p2.toUpperCase(); } );
 };
+isArray = function(obj) {
+    "use strict";
+	return Object.prototype.toString.call(obj) === '[object Array]';
+};
 
 // selfish.js
 !(typeof define!=="function"?function($){$(null,typeof exports!=='undefined'?exports:window)}:define)(function(require,exports){"use strict";exports.Base=Object.freeze(Object.create(Object.prototype,{'new':{value:function create(){var object=Object.create(this);object.initialize.apply(object,arguments);return object}},initialize:{value:function initialize(){}},merge:{value:function merge(){var descriptor={};Array.prototype.forEach.call(arguments,function(properties){Object.getOwnPropertyNames(properties).forEach(function(name){descriptor[name]=Object.getOwnPropertyDescriptor(properties,name)})});Object.defineProperties(this,descriptor);return this}},extend:{value:function extend(){return Object.freeze(this.merge.apply(Object.create(this),arguments))}}}))});
 
 var RestlessRepository = Base.extend({
-    _self = this,
-    _items = [],
+    _self: this,
+    _items: [],
     
     initialize: function(modelName, uri) {
         this.modelName = modelName;
@@ -30,10 +34,10 @@ var RestlessRepository = Base.extend({
             }
             this.uri = uri;
         }
-    }
+    },
     
     getId: function(item) {
-    }
+    },
     
     /** Distributes the changes to everyone listening */
     publish: function() {
@@ -90,7 +94,7 @@ var RestlessRepository = Base.extend({
             }
         });
     }
-})
+});
 
 
 
@@ -113,7 +117,7 @@ var RestlessRepository = Base.extend({
         },
         
         initialize = function() {
-            var templateNode = $('#' + $target.attr('id') + '-template');
+            var templateNode = $('[data-template-for="' + $target.attr('id') + '"]');
             if (templateNode.length === 1) {
                 $target.data('griffin-render-node', templateNode);
 
@@ -140,6 +144,7 @@ var RestlessRepository = Base.extend({
         }
         var item = renderer($target, data);
         item.attr('data-model-id', $.griffin.model.getId(data));
+		item.data('griffin.model', data);
         return item;    
     };    
     
@@ -151,28 +156,10 @@ var RestlessRepository = Base.extend({
      */
     $.griffin.model = {};
     $.griffin.model.Object = function() {
-        var _models = [],
-            _controllers = [],
+        var _repositories = [],
             self = this,
-            set = function(modelName, item) {
-                if (typeof _models[modelName] === 'undefined') {
-                    _models[modelName] = [];
-                }
-            
-                _models[modelName][self.getId(item)] = item;
-            },
-            get = function(modelName, id) {
-                if (typeof id === 'number') {
-                    return _models[modelName][id];
-                }
-                
-                return _models[modelName][self.getId(id)];
-            },
-            publish = function(name, args) {
+			publish = function(name, args) {
                 PubSub.publish(name, args);
-            },
-            isArray = function(obj) {
-                return Object.prototype.toString.call(obj) === '[object Array]';
             };
 
         /** @returns id of the specified model */
@@ -183,18 +170,41 @@ var RestlessRepository = Base.extend({
            
             return item.id;
         };
+		
+		this.createRepository = function(modelName) {
+			return RestlessRepository.new(modelName);
+		},
         
         /** Initialize models and load their controllers. */
         this.init = function(modelNames) {
             $.each(modelNames, function(index, modelName){
-                var controllerName = modelName.capatilize() + "Controller";
-                if (!window.hasOwnProperty(controllerName)) {
-                    throw 'Expected to find a controller for ' + controllerName;
-                }
-                
-                _controllers[modelName] = window[controllerName];
+                var repos = self.createRepository(modelName);
+                _repositories[modelName] = repos;
             });
         };
+		
+		this.from = function($obj) {
+			var selector = '';
+			if ($obj[0].tagName === 'FORM') {
+				selector = 'input[type!="submit"], input[type!="button"]';
+			} else if ($obj[0].tagName === 'TR') {
+				return $obj.data('griffin.model');
+			}
+			
+			var arr = [];
+			$('input[type!="submit"], input[type!="button"]', $obj).each(function() {
+				var name = $(this).attr('name');
+				if (typeof name === 'undefined') {
+					return this;
+				}
+				var value = $(this).val();
+				arr[name] = value;
+			});
+			console.log(arr);
+			
+			return $.extend({}, arr);
+		}
+		
         
         /** Load a model (or an array of models).
           *
@@ -209,13 +219,19 @@ var RestlessRepository = Base.extend({
              * @param itemData data for a single node
              */
             var updateItem = function($target, itemData) {
-                var $existing = $('[data-model-id="' + self.getId(itemData) + '"]', $target);
+				var id = self.getId(itemData).toString();
+				
+				if ($target.attr('data-model-id') && $target.attr('data-model-id') !== id) {
+					return;
+				}
+				
+                var $existing = $('[data-model-id="' + id + '"]', $target);
                 if ($existing.length === 1) {
                     $existing.replaceWith($.griffin.renderItem($target, itemData));
-                    publish('griffin.node.' + modelName + '.added.' + self.getId(itemData), { node: $existing[0], data: itemData, target: $target[0], modelName: modelName});
+                    publish('griffin.node.' + modelName + '.updated.' + self.getId(itemData), { node: $existing[0], data: itemData, target: $target[0], modelName: modelName});
                 } else {
                     var node = $.griffin.renderItem($target, itemData).appendTo($target);
-                    publish('griffin.node.' + modelName + '.updated.' + self.getId(itemData), { node: node, data: itemData, target: $target[0], modelName: modelName });
+                    publish('griffin.node.' + modelName + '.added.' + self.getId(itemData), { node: node, data: itemData, target: $target[0], modelName: modelName });
                 }    
             };
     
@@ -223,20 +239,16 @@ var RestlessRepository = Base.extend({
                 
                 var $this = $(this);
                 if (!isArray(data)) {
-                    publish('griffin.model.' + modelName + '.loading.' + self.getId(data), { data: data, modelName: modelName });
-                    set(modelName, data);
-                    updateItem($this, data);
-                    publish('griffin.model.' + modelName + '.loaded.' + self.getId(data), { data: data, modelName: modelName });
-                } else {
-                    $.each(data, function(index, item) {
-                        console.log(item);
-                        console.log(self);
-                        publish('griffin.model.' + modelName + '.loading.' + self.getId(item), { data: item, modelName: modelName });
-                        set(modelName, item);
-                        updateItem($this, item);
-                        publish('griffin.model.' + modelName + '.loaded.' + self.getId(item), { data: item, modelName: modelName });
-                    });
-                }
+					data = [data];
+				}
+				
+				
+				$.each(data, function(index, item) {
+					publish('griffin.model.' + modelName + '.loading.' + self.getId(item), { data: item, modelName: modelName });
+					//set(modelName, item);
+					updateItem($this, item);
+					publish('griffin.model.' + modelName + '.loaded.' + self.getId(item), { data: item, modelName: modelName });
+				});
             });
         };
         

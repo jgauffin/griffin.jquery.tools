@@ -30,6 +30,7 @@ Cras ut velit vel erat consectetur consequat quis et magna. Duis at enim placera
 
 <button id="triggerOverlay">Trigger</button>
 <button id="triggerSpinner">Spinner</button>
+<button id="entirePage">Entire page</button>
 
 <script type="text/javascript">
 	$(function(){
@@ -44,6 +45,12 @@ Cras ut velit vel erat consectetur consequat quis et magna. Duis at enim placera
                 
             // to simulate an ajax request etc.
             window.setTimeout(function() { $('#whole').elementOverlay('hide') }, 1000);
+        });        
+        $('#entirePage').click(function() {
+            $(window).elementOverlay({title: '<img src="spinner.gif" />'});
+                
+            // to simulate an ajax request etc.
+            window.setTimeout(function() { $(window).elementOverlay('hide') }, 1000);
         });        
         
 	});

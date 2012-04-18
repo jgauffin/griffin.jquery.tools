@@ -45,6 +45,9 @@
 
                 this.reposition = function() {
                     var pos = $this.offset();
+                    if (!pos) {
+                        pos = { top: 0, left: 0 };
+                    }
                     data.overlay.css({
                         position: 'absolute',
                         top: pos.top,

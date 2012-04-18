@@ -1,0 +1,264 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>jQuery.griffinTour</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="content-language" content="en" />
+    <meta name="author" lang="en" content="Jonas Gauffin" xml:lang="en" />
+    <meta name="copyright" lang="en" content="Jonas Gauffin" xml:lang="en" />
+    <meta name="description" content="Demo page for jquery.griffin.tour" />
+    <meta name="keywords" content="jquery,griffin framework,tour" />
+    <meta name="robots" content="all,follow" />
+    <link href="css/screen.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    
+    <!-- Resources required for the plugin -->
+    <link rel="stylesheet" href="css/jquery-ui-1.8.16.custom.css" type="text/css" />
+    <script type="text/javascript" src="http://code.jquery.com/jquery.min.js"></script>
+    <script type="text/javascript" src="scripts/jquery.griffin.tour.js"></script>
+    <script type="text/javascript" src="scripts/jquery-ui-1.8.16.custom.min.js"></script>
+    <!-- End of plugin resources -->
+    <style type="text/css">
+/*<![CDATA[*/
+        /* Highlighted item */
+        .griffin-tour-spotlight { position:relative; z-index: 9999; background: #CCEEFF; }
+        
+        /* Container for the tour text */
+        #griffin-tour-container { display: none; background: #CCEEFF; padding: 20px; position: absolute; z-index: 9999; }
+        
+        /* Overlay used by the tour. Will get jQueryUI overlay style */
+        #griffin-tour-overlay { display: none; z-index: 9998;}
+        
+        
+        #my-custom-container { display: none; background: #CCEEFF; padding: 20px; position: absolute; z-index: 9999; padding: 0px;}
+        #my-custom-container div p { padding-left: 10px; padding-right: 10px }
+        #my-custom-container a.ui-button { text-decoration: none;  }
+        #my-custom-container h1 { margin: 0px; border-bottom: 1px solid #cccccc; background: white; padding: 10px;}
+        #my-custom-container .footer { border-top: 1px solid #cccccc; background: white; margin: 0px; padding: 10px; }
+    /*]]>*/
+    </style>
+    <script type="text/javascript">
+//<![CDATA[
+        $(function(){
+            $('#demo').click(function(e) {
+                e.preventDefault();
+                $('#the-tour').griffinTour();
+            });
+            $('#container-demo-link').click(function(e) {
+                e.preventDefault();
+                $('#the-tour').griffinTour({container: '#my-custom-container'});
+            });
+            
+        });
+    //]]>
+    </script>
+    <title>
+      jQuery
+    </title>
+</head>
+  <body>
+    <div id="layout">
+      <div id="header">
+        <div id="nav">
+          <ul>
+            <li>
+              <a id="setup-link" href="#setup" name="setup-link">Setup<br />
+              <span>Basic setup</span></a>
+            </li>
+            <li>
+              <a id="customize-link" href="#customize" name="customize-link">Customize<br />
+              <span>Customize the container</span></a>
+            </li>
+            <li>
+              <a id="effect-link" href="#options" name="effect-link">Options<br />
+              <span>Plugin settings</span></a>
+            </li>
+            <li>
+              <a id="code-link" href="#code" name="code-link">Source code<br />
+              <span>Available at github</span></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div id="container">
+        <h1>jQuery.griffin.Tour</h1>
+        <p>
+          Welcome to the demo page of griffin.tour, a jQuery Tour script. The script is used to guide the user through your UI and the features that your site contain.
+        </p>
+        <p>
+          Click on <a href="#demo" id="demo" name="demo">this demo link</a> to show what's it about
+        </p>
+        <h2 id="setup">Setup</h2>
+        <p>
+          Will show you how to configure the script and it's required styles
+        </p>
+        <h3>
+          CSS styles
+        </h3>
+        <p>
+          You need to start by applying styling to a couple of items:
+        </p>
+        <pre><code>.griffin-tour-spotlight { position:relative; z-index: 9999; background: #CCEEFF; }
+#griffin-tour-container { display: none; background: #CCEEFF; padding: 20px; position: absolute; z-index: 9999; }
+#griffin-tour-overlay { display: none; z-index: 9998;}
+</code></pre>
+        <dl>
+          <dt>
+            .griffin-tour-spotlight
+          </dt>
+          <dd>
+            Added to the item which is described
+          </dd>
+          <dt>
+            #griffin-tour-container
+          </dt>
+          <dd>
+            Container that the guide is added to. The container contains the Next/Prev buttons
+          </dd>
+          <dt>
+            #griffin-tour-overlay
+          </dt>
+          <dd>
+            Overlay used to gray out everything else. Will get the jQueryUI overlay theme
+          </dd>
+        </dl>
+        <p>
+          You do typically just need to change the colors for the above defined styles
+        </p>
+        <h3>
+          Creating the guide
+        </h3>
+        <p>
+          The guide is created by using one DIV per item to describe. The DIV can contain anything you like.
+        </p>
+        <p>
+          Example guide
+        </p>
+        <pre><code>&lt;div style="display:none" id="the-tour"&gt;
+    &lt;div&gt;
+        &lt;h1&gt;Welcome&lt;/h1&gt;
+        &lt;p&gt;Welcome to the tour of this page!&lt;/p&gt;
+        &lt;p&gt;Click "Next" to start the tour&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div data-for="#setup"&gt;
+        &lt;h1&gt;The Setup&lt;/h1&gt;
+        &lt;p&gt;Click on this link to learn how to setup and configure the plugin&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        <ul>
+          <li>
+            <code>data-for</code> attribute is used to point at the element to describe
+          </li>
+          <li>No <code>data-for</code> attribute centers the guide (try scrolling)
+          </li>
+        </ul>
+        <h3>
+          Invoking the tour
+        </h3>
+        <p>
+          You simply call the plugin as:
+        </p>
+        <pre>
+<code>
+$('#tourToStart').griffinTour();
+</code>
+</pre>
+        <h2 id="customize">Customize</h2>
+        <p>You can customize the container to use a nicer tour layout. Add a new div somewhere and assign it a ID:</p>
+        <pre><code>&lt;div id="my-custom-container" class="griffin-tour-container" style="display: block"&gt;
+    &lt;div class="contents"&gt;
+    &lt;/div&gt;
+    &lt;div class="footer"&gt;
+        &lt;a href="#" class="previous ui-button"&gt;&lt;&lt; Previous&lt;/a&gt;
+        &lt;a href="#" class="quit ui-button"&gt;Quit&lt;/a&gt;
+        &lt;a href="#" class="next ui-button"&gt;Next &gt;&gt;&lt;/a&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        <p>It's important that the links get the <code>previous</code> / <code>quit</code> / <code>next</code> CSS classes and that there are an element with the <code>contents</code> class.</p>
+        <p>Next up is to add the custom styling:</p>
+        <pre><code>#my-custom-container { display: none; background: #CCEEFF; padding: 20px; position: absolute; z-index: 9999; padding: 0px;}
+#my-custom-container div p { padding-left: 10px; padding-right: 10px }
+#my-custom-container a.ui-button { text-decoration: none;  }
+#my-custom-container h1 { margin: 0px; border-bottom: 1px solid #cccccc; background: white; padding: 10px;}
+#my-custom-container .footer { border-top: 1px solid #cccccc; background: white; margin: 0px; padding: 10px; }</code></pre>
+        
+        <p>Now just <a href="#" id="container-demo-link">init</a> (click on the link) the tour with the id: </p>
+        <pre><code>
+$('#tourToStart').griffinTour({container: '#my-custom-container'});
+
+</code></pre>
+        <h2 id="options">Options</h2>
+        <p>These are the available options</p>
+        <dl>
+            <dt>effect</dt>
+            <dd>One of the jQueryUI effects (like 'highlight' which is the default)</dd>
+            <dt>container</dt>
+            <dd>The container that the tour items will be placed in</dd>
+            <dt>overlay</dt>
+            <dd>A custom overlay</dd>
+        </dl>
+        <h2 id="code">Code</h2>
+        <p>The code is available at <a href="http://github.com/jgauffin/griffin.jquery.tools/">github.com</a>.
+        <h2>Credits</h2>
+        <p>
+          The plugin is created and managed by Jonas Gauffin (jgauffin). Follow me on <a href="http://www.twitter.com/jgauffin">twitter</a> (@jgauffin) or at <a href="http://github.com/jgauffin">github</a> (jgauffin).
+        </p>
+
+      </div><!-- container -->
+      <div id="footer">
+        © 2012 <a href="/">Jonas Gauffin</a>
+      </div>
+    </div>
+    <div id="the-tour" style="display: none">
+      <div>
+        <h1>Welcome</h1>
+        <p>
+          Welcome to the tour of this page!
+        </p>
+        <p>
+          Click "Next" to start the tour
+        </p>
+      </div>
+      <div data-for="#setup-link">
+        <h1>The Setup</h1>
+        <p>
+          Click on this link to learn how to setup and configure the plugin
+        </p>
+      </div>
+      <div data-for="#customize-link">
+        <h1>Customize the container</h1>
+        <p>
+          Shows how you can use your custom container
+        </p>
+      </div>
+      <div data-for="#effect-link">
+        <h1>Effective</h1>
+        <p>
+          How to change the jQueryUI effect that the plugin uses.
+        </p>
+      </div>
+      <div data-for="#code-link">
+        <h1>dA cOde!</h1>
+        <p>
+          Where you can find the code.
+        </p>
+      </div>
+      <div data-for="#footer">
+        <h1>oops</h1>
+        <p>
+          Do you like the footer?. (just added to show that the plugin can scroll)
+        </p>
+      </div>
+    </div>
+    <div id="my-custom-container" class="griffin-tour-container" style="display: none">
+        <div class="contents">
+        </div>
+        <div class="footer">
+            <a href="#" class="previous ui-button">&lt;&lt; Previous</a>
+            <a href="#" class="quit ui-button">Quit</a>
+            <a href="#" class="next ui-button">Next &gt;&gt;</a>
+        </div>
+    </div>
+    
+  </body>
+</html>

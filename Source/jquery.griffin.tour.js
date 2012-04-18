@@ -133,13 +133,15 @@
                     data.container.hide();
                     data.overlay.hide();
                     //data.overlay.removeClass('ui-widget-overlay');
+                    data.container.css('top', 'auto');
+                    data.container.css('left', 'auto');
                     self.fadeAway(data.index);
                     data.index = 0;
                     data.options.quit();
                 };
                 
 
-                if (typeof data !== 'undefined') {
+                if (typeof data !== 'undefined' && data !== null) {
                     return this;
                 }
 
@@ -214,7 +216,7 @@
 
                 // Namespacing FTW
                 $(window).unbind('.elementOverlay');
-                data.overlay.remove();
+                $this.data('griffin-tour', null);
                 $this.removeData('overlay');
 
             });

@@ -15,8 +15,8 @@
     <!-- Resources required for the plugin -->
     <link rel="stylesheet" href="css/jquery-ui-1.8.16.custom.css" type="text/css" />
     <script type="text/javascript" src="http://code.jquery.com/jquery.min.js"></script>
-    <script type="text/javascript" src="scripts/jquery.griffin.tour.js"></script>
-    <script type="text/javascript" src="scripts/jquery-ui-1.8.16.custom.min.js"></script>
+    <script type="text/javascript" src="../../Source/jquery.griffin.tour.js"></script>
+    <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
     <!-- End of plugin resources -->
     <style type="text/css">
 /*<![CDATA[*/
@@ -39,14 +39,15 @@
     </style>
     <script type="text/javascript">
 //<![CDATA[
+        // need to destroy in between the runs since we are using different containers for the same tour
         $(function(){
             $('#demo').click(function(e) {
                 e.preventDefault();
-                $('#the-tour').griffinTour();
+                $('#the-tour').griffinTour('destroy').griffinTour();
             });
             $('#container-demo-link').click(function(e) {
                 e.preventDefault();
-                $('#the-tour').griffinTour({container: '#my-custom-container'});
+                $('#the-tour').griffinTour('destroy').griffinTour({container: '#my-custom-container'});
             });
             
         });

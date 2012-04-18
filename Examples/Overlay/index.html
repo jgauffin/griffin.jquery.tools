@@ -31,7 +31,7 @@
               <span>Basic setup</span></a>
             </li>
             <li>
-              <a id="customize-link" href="#customize" name="customize-link">Demo<br />
+              <a id="customize-link" href="#demo" name="customize-link">Demo<br />
               <span>Demonstration</span></a>
             </li>
             <li>
@@ -84,9 +84,9 @@
         <p>
           You do typically just need to change the color for the above defined style.
         </p>
-        <h3>
-          Invoking the overlay
-        </h3>
+        <h2 id="demo">
+          Demo
+        </h2>
         <p>
             <button id="triggerOverlay">Trigger</button>
             <button id="triggerSpinner">Spinner</button>
@@ -98,7 +98,7 @@
         <pre><code>
 $('#css-list').elementOverlay();
 $('#css-list').elementOverlay({title: '&lt;img src="spinner.gif" /&gt;'});
-$(window).elementOverlay();
+$(document).elementOverlay();
 </code>
 </pre>
 
@@ -166,10 +166,10 @@ $(window).elementOverlay();
             window.setTimeout(function() { $('#css-list').elementOverlay('hide') }, 1000);
         });        
         $('#entirePage').click(function() {
-            $(window).elementOverlay({title: '<img src="spinner.gif" />'});
+            $(document).elementOverlay({title: '<img src="spinner.gif" />'});
                 
             // to simulate an ajax request etc.
-            window.setTimeout(function() { $(window).elementOverlay('hide') }, 1000);
+            window.setTimeout(function() { $(document).elementOverlay('hide') }, 1000);
         });        
         
 	});

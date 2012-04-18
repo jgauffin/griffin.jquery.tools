@@ -172,20 +172,24 @@
                 });
                 $(this).data('griffin-tour', data);
                 
-                $('.next', data.container).on('click', function(e) {
-                    e.preventDefault();
-                    self.moveNext();
-                });
-                
-                $('.previous', data.container).on('click', function(e) {
-                    e.preventDefault();
-                    self.movePrev();
-                });
+                // keep state even if overlay is destroyed, since we do not unsubscribe
+                if (!data.container.data('tour-bound')) {
+                    data.container.data('tour-bound', true);
+                    $('.next', data.container).on('click', function(e) {
+                        e.preventDefault();
+                        self.moveNext();
+                    });
+                    
+                    $('.previous', data.container).on('click', function(e) {
+                        e.preventDefault();
+                        self.movePrev();
+                    });
 
-                $('.quit', data.container).on('click', function(e) {
-                    e.preventDefault();
-                    self.quit();
-                });                
+                    $('.quit', data.container).on('click', function(e) {
+                        e.preventDefault();
+                        self.quit();
+                    });                
+                }
                 
                 // scroll center items (no data-for) when scrollbar is used.
                 $(window).scroll(function() {

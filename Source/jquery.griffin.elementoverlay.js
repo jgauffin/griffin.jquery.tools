@@ -66,7 +66,7 @@
                     $(data.spinner).css('padding-top', (($this.height() / 2) - 20) + 'px');
                 };
                 
-                if (typeof data === 'undefined') {
+                if (!data) {
                     data = { settings: settings, self: this };
                     var id = $this.attr('id') + '-overlay';
                     
@@ -102,10 +102,14 @@
                 var $this = $(this),
                     data = $this.data('griffin-element-overlay');
 
-                // Namespacing FTW
+                if (!data) {
+                    return;
+                }
+
                 $(window).unbind('.elementOverlay');
                 data.overlay.remove();
                 data.spinner.remove();
+                $this.data('griffin-element-overlay', null);
                 $this.removeData('overlay');
 
             });

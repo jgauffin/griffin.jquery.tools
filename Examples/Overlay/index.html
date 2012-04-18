@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>jQuery.elementOverlay</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="content-language" content="en" />
+    <meta name="author" lang="en" content="Jonas Gauffin" xml:lang="en" />
+    <meta name="copyright" lang="en" content="Jonas Gauffin" xml:lang="en" />
+    <meta name="description" content="jqueryElementOverlay can place an overlay over any HTML element." />
+    <meta name="keywords" content="jquery,griffin framework,elementOverlay" />
+    <meta name="robots" content="all,follow" />
+    <link href="css/screen.css" type="text/css" rel="stylesheet" />
+    
+    <!-- Resources required for the plugin -->
+    <link rel="stylesheet" href="../Styles/jquery-ui-1.8.16.custom.css">
+    <script type="text/javascript" src="http://code.jquery.com/jquery.min.js"></script>
+    <script type="text/javascript" src="../scripts/jquery-ui-1.8.16.custom.min.js"></script>
+    <script type="text/javascript" src="../../Source/jquery.griffin.elementOverlay.js"></script>
+    <style type="text/css">
+    .element-overlay-contents {  color: red; text-align: center; font-size: 22pt; }
+    </style>
+</head>
+<body>
+    <div id="layout">
+      <div id="header">
+        <div id="nav">
+          <ul>
+            <li>
+              <a id="setup-link" href="#setup" name="setup-link">Setup<br />
+              <span>Basic setup</span></a>
+            </li>
+            <li>
+              <a id="customize-link" href="#customize" name="customize-link">Demo<br />
+              <span>Demonstration</span></a>
+            </li>
+            <li>
+              <a id="effect-link" href="#options" name="effect-link">Options<br />
+              <span>Plugin settings</span></a>
+            </li>
+            <li>
+              <a id="effect-link" href="#methods" name="effect-link">Methods<br />
+              <span>Methods which can be invoked</span></a>
+            </li>
+            <li>
+              <a id="code-link" href="#code" name="code-link">Source code<br />
+              <span>Available at github</span></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div id="container">
+        <h1>jQuery.elementOverlay</h1>
+        <p>
+          Welcome to the demo page of elementOverlay, a jQuery overlay script which can put an overlay over any HTML element.
+        </p>
+        <h2 id="setup">Setup</h2>
+        <p>
+          Will show you how to configure the script and it's required styles
+        </p>
+        <h3>
+          CSS styles
+        </h3>
+        <p>
+          You need to start by applying styling to these items:
+        </p>
+        <pre><code>.element-overlay-contents {  color: red; text-align: center; font-size: 22pt; }
+.element-overlay-bk {}
+</code></pre>
+        <dl id="css-list">
+          <dt>
+            .element-overlay-contents
+          </dt>
+          <dd>
+            The text/spinner etc are put in a <code>div</code> with this class.
+          </dd>
+          <dt>
+            .element-overlay-bk
+          </dt>
+          <dd>
+            Used for the actual overlay.
+          </dd>
+        </dl>
+        <p>
+          You do typically just need to change the color for the above defined style.
+        </p>
+        <h3>
+          Invoking the overlay
+        </h3>
+        <p>
+            <button id="triggerOverlay">Trigger</button>
+            <button id="triggerSpinner">Spinner</button>
+            <button id="entirePage">Entire page</button>
+        </p>
+        <p>
+          You simply call the plugin as:
+        </p>
+        <pre><code>
+$('#css-list').elementOverlay();
+$('#css-list').elementOverlay({title: '&lt;img src="spinner.gif" /&gt;'});
+$(window).elementOverlay();
+</code>
+</pre>
+
+        <h2 id="options">Options</h2>
+        <p>These are the available options</p>
+        <dl>
+            <dt>overlay</dt>
+            <dd>HTML or ID (starting with #) for the overlay</dd>
+            <dt>spinner</dt>
+            <dd>Container used to display information over the overlay. Either HTML or and element ID (starting with #).</dd>
+            <dt>title</dt>
+            <dd>Text to show over the overlay</dd>
+        </dl>
+        
+
+        <h2 id="methods">Methods</h2>
+        <p>Methods which can be invoked on an overlay</p>
+        <dl id="css-list">
+          <dt>
+            show
+          </dt>
+          <dd>
+            Show a previously hidden overlay
+          </dd>
+          <dt>
+            hide
+          </dt>
+          <dd>
+            hide an overlay
+          </dd>
+          <dt>
+            destroy
+            </dt>
+            <dd>Hide and remove everything from the DOM tree</dd>
+        </dl>
+        <h3>Example</h3>
+        <pre><code>$('#css-list').elementOverlay('hide');</code></pre>
+        
+        <h2 id="code">Code</h2>
+        <p>The code is available at <a href="http://github.com/jgauffin/griffin.jquery.tools/">github.com</a>. You only need the <code>jquery.griffin.elementOverlay.js</code> script (and the above mentioned CSS styles).
+        <h2>Credits</h2>
+        <p>
+          The plugin is created and managed by Jonas Gauffin (jgauffin). Follow me on <a href="http://www.twitter.com/jgauffin">twitter</a> (@jgauffin) or at <a href="http://github.com/jgauffin">github</a> (jgauffin).
+        </p>
+
+        
+      </div><!-- container -->
+      <div id="footer">
+        © 2012 <a href="/">Jonas Gauffin</a>
+      </div>
+    </div>      
+
+<script type="text/javascript">
+	$(function(){
+		$('#triggerOverlay').click(function() {
+            $('#css-list').elementOverlay('destroy').elementOverlay();
+                
+            // to simulate an ajax request etc.
+            window.setTimeout(function() { $('#css-list').elementOverlay('hide') }, 1000);
+        });
+        $('#triggerSpinner').click(function() {
+            $('#css-list').elementOverlay('destroy').elementOverlay({title: '<img src="spinner.gif" />'});
+                
+            // to simulate an ajax request etc.
+            window.setTimeout(function() { $('#css-list').elementOverlay('hide') }, 1000);
+        });        
+        $('#entirePage').click(function() {
+            $(window).elementOverlay({title: '<img src="spinner.gif" />'});
+                
+            // to simulate an ajax request etc.
+            window.setTimeout(function() { $(window).elementOverlay('hide') }, 1000);
+        });        
+        
+	});
+</script>
+</body>
+</html>

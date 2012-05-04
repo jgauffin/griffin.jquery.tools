@@ -13,11 +13,23 @@
         text-align: center; 
         font-size: 22pt; 
     }
+    .griffin-dialog {
+        min-width: 500px;
+    }
  </style>
 </head>
 <body>
 
 <a href="dialog-contents.php" class="ajax-dialog">Create user</a>
+<script type="text/javascript">
+$(function(){
+    //$.griffin.dialogs.alert({ title: 'Error!', message: 'Hello wolrd!', closed: function() { alert('Closed'); }});
+    $.griffin.dialogs.confirm({ title: 'Error!', message: 'Want to fly?', yes: function() { alert('yes!');} , no: function() { alert('No!'); }});
+});
+</script>
 
 </body>
+
+
+
 </html>

@@ -1,9 +1,3 @@
-/** Must always be included for the other plugins to work
- * 
- */
- 
- 
- 
  /** New loading event
   *
   * The following event is used to load plugins for a partial (HTML loaded through ajax)
@@ -54,77 +48,28 @@ $(function() {
 $.griffin = {};
 
 function isArray(obj) {
+    "use strict";
     return Object.prototype.toString.call(obj) === '[object Array]';
-};
+}
 function isNonEmptyArrayLike(obj) {
+    "use strict";
     try { // don't bother with `typeof` - just access `length` and `catch`
         return obj.length > 0 && '0' in Object(obj);
     }
     catch(e) {
         return false;
     }
-};
+}
 
 /**
 var response = {
     success: true, // or false
-    responseType: 'model' // or 'dialog' etc
-    body: {  // responseType specific
+    contentType: 'model' // or 'dialog' etc
+    body: {  // contentType specific
         action: 'show',
         content: ''
     }
 */
-
-$.griffin.dialogs = [];
-$.griffin.dialogs.alert = function(title, message) {
-    var content = message;
-    try {
-        content = $(message);
-    } catch (errMsg) {
-        content = $('<div>' + message + '</div>');
-    }
-        
-    var $dialog = $(content).appendTo($('body'));
-    $dialog.dialog({ 
-        dialogClass: 'griffin-dialog griffin-dialog-alert',
-        title: title,
-        modal: true, 
-        width: 'auto', 
-        buttons: {
-            Ok: function() {
-                $( this ).dialog( "close" );
-                $dialog.remove();
-            }
-        }               
-    });
-};
-$.griffin.dialogs.confirm = function(title, message, yesCallBack) {
-    var content = message;
-    try {
-        content = $(message);
-    } catch (errMsg) {
-        content = $('<div>' + message + '</div>');
-    }
-        
-    var $dialog = $(content).appendTo($('body'));
-    $dialog.dialog({ 
-        dialogClass: 'griffin-dialog griffin-dialog-confirm',
-        title: title,
-        modal: true, 
-        width: 'auto', 
-        buttons: {
-            Yes: function() {
-                $( this ).dialog( "close" );
-                $dialog.remove();
-                yesCallback();
-            },
-            No: function() {
-                $( this ).dialog( "close" );
-                $dialog.remove();
-            }
-        }               
-    });
-};
 
 $.griffin.jsonResponse = function ($target, json) {
     "use strict";
@@ -132,13 +77,13 @@ $.griffin.jsonResponse = function ($target, json) {
         throw '$target was not specified';
     }
     console.log(json.body);
-    if (typeof json.success === 'undefined' || typeof json.body === 'undefined' || typeof json.responseType === 'undefined') {
+    if (typeof json.success === 'undefined' || typeof json.body === 'undefined' || typeof json.contentType === 'undefined') {
         console.log(json);
-        throw 'Expected to get the { success: true/false, responseType: "theType", body: {} } JSON respone';
+        throw 'Expected to get the { success: true/false, contentType: "theType", body: {} } JSON respone';
     }
 
     if (!json.success) {
-        alert(json.body);
+        $.griffin.dialogs.alert(json.body);
         return this;
     }
     
@@ -159,7 +104,7 @@ $.griffin.jsonResponse = function ($target, json) {
             $target.remove();
             return this;
         }
-        else if (typeof data.contentType !== 'undefined' && (data.contentType === 'html' || data.contentType == 'string')) {
+        else if (typeof data.contentType !== 'undefined' && (data.contentType === 'html' || data.contentType === 'string')) {
             if (data.action === 'replace') {
                 $target.html(data.content);
                 return this;
